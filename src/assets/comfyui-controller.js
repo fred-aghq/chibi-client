@@ -2,6 +2,7 @@ import AController from "@/assets/acontroller";
 import axios from "axios";
 import { uuidv4 } from '@/assets/utils';
 import { generateComfyObjects } from '@/assets/comfy-object-draft';
+import workflowJson from '@/assets/workflows/sdbasic.json'; // @TODO: obviously build a workflow selector component
 
 export default class ComfyUIController extends AController {
   // websocket
@@ -153,30 +154,37 @@ export default class ComfyUIController extends AController {
   }
 
   async generate(info) {
-    if (!this.comfyObjects) {
-      this.makeTxt2ImgObject();
-    }
-    this.comfyObjects.model.set("ckpt_name", info.checkpoint);
-    this.comfyObjects.prompt.set("text", info.prompt);
-    this.comfyObjects.negative.set("text", info.negative_prompt);
-    this.comfyObjects.emptyLatent.set("width", info.width);
-    this.comfyObjects.emptyLatent.set("height", info.height);
-    this.comfyObjects.sampler.set("steps", info.steps);
-    this.comfyObjects.sampler.set("cfg", info.cfg_scale);
-    this.comfyObjects.sampler.set("sampler_name", info.sampler_name);
-    this.comfyObjects.sampler.set("scheduler", info.scheduler);
-    this.comfyObjects.sampler.set("seed", info.seed);
-    if (vae.info) {
-      this.comfyObjects.vae.set("vae_name", vae.info);
-      this.comfyObjects.vaeDecoder.set("vae", this.comfyObjects.vae);
-    } else {
-      this.comfyObjects.vaeDecoder.set("vae", this.comfyObjects.model.VAE);
-    }
+    // @TODO: should remove commented code but I am actively referring to it while building feature parity 
 
-    this.comfyObjects.saveImageWebp.set("quality", this.imageQuality);
+    // if (!this.comfyObjects) {
+    //   this.makeTxt2ImgObject();
+    // }
+    // this.comfyObjects.model.set("ckpt_name", info.checkpoint);
+    // this.comfyObjects.prompt.set("text", info.prompt);
+    // this.comfyObjects.negative.set("text", info.negative_prompt);
+    // this.comfyObjects.emptyLatent.set("width", info.width);
+    // this.comfyObjects.emptyLatent.set("height", info.height);
+    // this.comfyObjects.sampler.set("steps", info.steps);
+    // this.comfyObjects.sampler.set("cfg", info.cfg_scale);
+    // this.comfyObjects.sampler.set("sampler_name", info.sampler_name);
+    // this.comfyObjects.sampler.set("scheduler", info.scheduler);
+    // this.comfyObjects.sampler.set("seed", info.seed);
+    // if (vae.info) {
+    //   this.comfyObjects.vae.set("vae_name", vae.info);
+    //   this.comfyObjects.vaeDecoder.set("vae", this.comfyObjects.vae);
+    // } else {
+    //   this.comfyObjects.vaeDecoder.set("vae", this.comfyObjects.model.VAE);
+    // }
+
+    // this.comfyObjects.saveImageWebp.set("quality", this.imageQuality);
+    console.debug(info.seed);
     try {
-      const target = (this.imageFormat == 'webp') ? this.comfyObjects.saveImageWebp : this.comfyObjects.saveImage;
-      const res = await axios.post(`${this.url}/prompt`, JSON.stringify({ prompt: target.toWorkflow(), client_id: this.clientId }));
+      // const target = (this.imageFormat == 'webp') ? this.comfyObjects.saveImageWebp : this.comfyObjects.saveImage;
+
+      let preparedWorkflow = this.prepareWorkflow(workflowJson, info);
+      console.debug(preparedWorkflow);
+
+      const res = await axios.post(`${this.url}/prompt`, JSON.stringify({ prompt: preparedWorkflow, client_id: this.clientId }));
       this.prompt_id = res.data.prompt_id;
       this.generationInfo = info;
 
@@ -185,5 +193,47 @@ export default class ComfyUIController extends AController {
     } catch (e) {
       this.listener("error", e);
     }
+  }
+
+  prepareWorkflow(workflowJson, userInput) {
+    // @TODO this whole thing is inefficient - must be a nicer way to map this etc. 
+    const tokenMap = {}
+
+    let preparedWorkflow = {};
+    preparedWorkflow = this.replaceTemplatePlaceholder(structuredClone(workflowJson), "{{PROMPT_POS_TEXT}}", userInput.prompt.trim());
+    preparedWorkflow = this.replaceTemplatePlaceholder(preparedWorkflow, "{{PROMPT_NEG_TEXT}}", userInput.negative_prompt.trim());
+    preparedWorkflow = this.replaceTemplatePlaceholder(preparedWorkflow, "{{CHECKPOINT_BASE_NAME}}", userInput.checkpoint);
+    // Gotta escape the double quotes as well so it replaces string with an int
+    preparedWorkflow = this.replaceTemplatePlaceholder(preparedWorkflow, "{{SEED}}", Number(userInput.seed));
+    return preparedWorkflow;
+  }
+
+  replaceTemplatePlaceholder(workflow, target, replacement) {
+    // Replace the target string
+    return this.searchAndReplace(workflow, target, replacement);
+  }
+
+  searchAndReplace(obj, target, replacement) {
+    if (typeof obj === 'object' && obj !== null) {
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          if (obj[key] === target) {
+            obj[key] = replacement; // Replace the value
+          } else if (typeof obj[key] === 'object') {
+            // Recursively process nested objects or arrays
+            this.searchAndReplace(obj[key], target, replacement);
+          }
+        }
+      }
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        if (item === target) {
+          obj[index] = replacement;
+        } else if (typeof item === 'object') {
+          this.searchAndReplace(item, target, replacement);
+        }
+      });
+    }
+    return obj;
   }
 }
