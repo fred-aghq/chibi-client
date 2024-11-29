@@ -18,6 +18,19 @@ Chibi, also known as super deformation, or S.D. is a style of caricature origina
 ### Using as standalone
 - cloning this repo, then run `npm run dev` or serve with any web server.
 
+## Custom Workflows (WIP)
+### Placeholders
+This list may not be 100% up-to-date. see `src/workflow/functions/mapUserInputToTemplateToken.js`
+
+- `{{PROMPT_POS_TEXT}}`
+- `{{PROMPT_NEG_TEXT}}`
+- `{{SEED}}`
+- `{{CHECKPOINT_BASE_NAME}}`
+- `{{STEPS_BASE}}`
+- `{{CFG_BASE}}`
+- `{{SAMPLER_BASE_NAME}}`
+- `{{SAMPLER_BASE_SCHEDULER}}`
+
 ## Features
 - Very simple txt2img generation.
 - Responsive web page for mobile.
