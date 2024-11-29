@@ -1,8 +1,7 @@
 # Chibi client
+This is an experimental WIP fork of chibi-client, attempting to make it (relatively) easy to run custom/user-uploaded workflows.
 
-A Simple txt2img client for ComfyUI and Stable Diffusion web UI, developed in Vue3.
-
-Chibi, also known as super deformation, or S.D. is a style of caricature originating in Japan, and common in anime and manga[^1]
+> This work is super experimental, and started out as a quick hack to better suit my needs. There will be little, if any support, or response to issues etc., but I am keen to have a little side project so we'll see...
 
 ## Usage
 
@@ -16,9 +15,18 @@ Chibi, also known as super deformation, or S.D. is a style of caricature origina
 - open `<webui_url>/chibi`. It is normally `http://localhost:7860/chibi`.
 
 ### Using as standalone
-- cloning this repo, then run `npm run dev` or serve with any web server.
+- clone this repo, then run `npm run dev` or serve with any web server.
 
 ## Custom Workflows (WIP)
+### How to
+There's no particular recommend method, what I would do is:
+
+1. Export workflow from ComfyUi (**Workflow > Export (API)**)
+2. Create a new folder `workflows` in the root of this folder (same level as this README you're reading right now!)
+3. Copy workflow JSON file to `workflows`
+4. Replace each relevant node input value in the workflow JSON with the appropriate placeholder tag (see below)
+5. You should see the workflow filename appear in the workflow dropdown (NOT YET IMPLEMENTED >=] )
+
 ### Placeholders
 This list may not be 100% up-to-date. see `src/workflow/functions/mapUserInputToTemplateToken.js`
 
@@ -32,19 +40,7 @@ This list may not be 100% up-to-date. see `src/workflow/functions/mapUserInputTo
 - `{{SAMPLER_BASE_SCHEDULER}}`
 
 ## Features
-- Very simple txt2img generation.
+- Very simple txt2img generation, or load in your own workflows!
 - Responsive web page for mobile.
 - Tagautocomplete for danbooru tags.
 - Supporting PWA.
-
-## Demo
-You can see the UI from the below page.
-
-https://bedovyy.github.io/chibi-client/
-
-You can test it if you set your comfyui address on settings.
-To test from the webpage, The protocol should be https because of mixed content error.
-You may use tunnel service like `cloudflared` and ComfyUI should be run with `--enable-cors-header` option.
-
-
-[^1]: https://en.wikipedia.org/wiki/Chibi_(style)
