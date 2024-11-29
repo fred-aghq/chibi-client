@@ -3,6 +3,7 @@ import axios from "axios";
 import { uuidv4 } from '@/assets/utils';
 import { generateComfyObjects } from '@/assets/comfy-object-draft';
 import workflowJson from '@/assets/workflows/sdbasic.json'; // @TODO: obviously build a workflow selector component
+import { mapUserInputToTemplateToken } from "@/workflow/functions/mapUserInputToTemplateToken";
 
 export default class ComfyUIController extends AController {
   // websocket
@@ -55,19 +56,19 @@ export default class ComfyUIController extends AController {
   async messageListener(msg) {
     try {
       const json = JSON.parse(msg.data);
-      console.log(Date() + " ws : message", json);
+      console.debug(Date() + " ws : message", json);
       if (json.type == "status") {
         return;
       }
       const message = json.type.toUpperCase() + (json.data.node ? `: ${json.data.node.split('-')[0]}` : "") + (json.type == "progress" ? ` ${json.data.value} / ${json.data.max}` : "");
       const progress = json.type == "progress" ? Math.floor(Number(json.data.value) / Number(json.data.max) * 100) : 0;
       this.listener("running", message, progress);
-  
+
       // clumsy ws hanging solution.
       if (this.timeoutWS) {
         this.timeoutWS = clearTimeout(this.timeoutWS);
       }
-  
+
       if (json.data.node === null && json.data.prompt_id != null) {
         this.getheringImages(json.data.prompt_id);
       }
@@ -81,18 +82,18 @@ export default class ComfyUIController extends AController {
     this.websocket = new WebSocket(`${urlForWebSocket}/ws?clientId=${this.clientId}`);
     this.websocket.onmessage = this.messageListener.bind(this);
     this.websocket.onopen = (e) => {
-      console.log(Date() + " ws: open", e);
+      console.debug(Date() + " ws: open", e);
       if (this.prompt_id) {
         // collect missing image.
         this.getheringImages(this.prompt_id);
       }
     };
     this.websocket.onclose = (e) => {
-      console.log(Date() + " ws: closed", e);
+      console.warning(Date() + " ws: closed", e);
       setTimeout(() => this.createWebSocket(), 1000);
     }
     this.websocket.onerror = (e) => {
-      console.log(Date() + " ws: error", e);
+      console.error(Date() + " ws: error", e);
       this.websocket.close(1002, "error occured");
     }
   }
@@ -127,31 +128,31 @@ export default class ComfyUIController extends AController {
     return [this.imageFormat, this.imageQuality];
   }
 
-  makeTxt2ImgObject() {
-    this.comfyObjects = {
-      model: new this.node.CheckpointLoaderSimple(),
-      prompt: new this.node.CLIPTextEncode(),
-      negative: new this.node.CLIPTextEncode(),
-      emptyLatent: new this.node.EmptyLatentImage("", "", 1),
-      sampler: new this.node.KSampler(),
-      vae: new this.node.VAELoader(),
-      vaeDecoder: new this.node.VAEDecode(),
-      saveImage: new this.node.SaveImage(),
-      saveImageWebp: new this.node.SaveAnimatedWEBP(null, "CHIBI", 0.01, false, this.imageQuality, "default"),
-    };
-    this.comfyObjects.prompt.set("clip", this.comfyObjects.model);
-    this.comfyObjects.negative.set("clip", this.comfyObjects.model.CLIP);
-    this.comfyObjects.sampler.set("model", this.comfyObjects.model.MODEL);
-    this.comfyObjects.sampler.set("positive", this.comfyObjects.prompt);
-    this.comfyObjects.sampler.set("negative", this.comfyObjects.negative);
-    this.comfyObjects.sampler.set("latent_image", this.comfyObjects.emptyLatent);
-    this.comfyObjects.sampler.set("denoise", 1.0);
-    this.comfyObjects.vaeDecoder.set("samples", this.comfyObjects.sampler);
+  // makeTxt2ImgObject() {
+  //   this.comfyObjects = {
+  //     model: new this.node.CheckpointLoaderSimple(),
+  //     prompt: new this.node.CLIPTextEncode(),
+  //     negative: new this.node.CLIPTextEncode(),
+  //     emptyLatent: new this.node.EmptyLatentImage("", "", 1),
+  //     sampler: new this.node.KSampler(),
+  //     vae: new this.node.VAELoader(),
+  //     vaeDecoder: new this.node.VAEDecode(),
+  //     saveImage: new this.node.SaveImage(),
+  //     saveImageWebp: new this.node.SaveAnimatedWEBP(null, "CHIBI", 0.01, false, this.imageQuality, "default"),
+  //   };
+  //   this.comfyObjects.prompt.set("clip", this.comfyObjects.model);
+  //   this.comfyObjects.negative.set("clip", this.comfyObjects.model.CLIP);
+  //   this.comfyObjects.sampler.set("model", this.comfyObjects.model.MODEL);
+  //   this.comfyObjects.sampler.set("positive", this.comfyObjects.prompt);
+  //   this.comfyObjects.sampler.set("negative", this.comfyObjects.negative);
+  //   this.comfyObjects.sampler.set("latent_image", this.comfyObjects.emptyLatent);
+  //   this.comfyObjects.sampler.set("denoise", 1.0);
+  //   this.comfyObjects.vaeDecoder.set("samples", this.comfyObjects.sampler);
 
-    this.comfyObjects.saveImage.set("filename_prefix", "CHIBI");
-    this.comfyObjects.saveImage.set("images", this.comfyObjects.vaeDecoder);
-    this.comfyObjects.saveImageWebp.set("images", this.comfyObjects.vaeDecoder);
-  }
+  //   this.comfyObjects.saveImage.set("filename_prefix", "CHIBI");
+  //   this.comfyObjects.saveImage.set("images", this.comfyObjects.vaeDecoder);
+  //   this.comfyObjects.saveImageWebp.set("images", this.comfyObjects.vaeDecoder);
+  // }
 
   async generate(info) {
     // @TODO: should remove commented code but I am actively referring to it while building feature parity 
@@ -159,11 +160,6 @@ export default class ComfyUIController extends AController {
     // if (!this.comfyObjects) {
     //   this.makeTxt2ImgObject();
     // }
-    // this.comfyObjects.model.set("ckpt_name", info.checkpoint);
-    // this.comfyObjects.prompt.set("text", info.prompt);
-    // this.comfyObjects.negative.set("text", info.negative_prompt);
-    // this.comfyObjects.emptyLatent.set("width", info.width);
-    // this.comfyObjects.emptyLatent.set("height", info.height);
     // this.comfyObjects.sampler.set("steps", info.steps);
     // this.comfyObjects.sampler.set("cfg", info.cfg_scale);
     // this.comfyObjects.sampler.set("sampler_name", info.sampler_name);
@@ -196,15 +192,16 @@ export default class ComfyUIController extends AController {
   }
 
   prepareWorkflow(workflowJson, userInput) {
-    // @TODO this whole thing is inefficient - must be a nicer way to map this etc. 
-    const tokenMap = {}
+    let preparedWorkflow = structuredClone(workflowJson);
 
-    let preparedWorkflow = {};
-    preparedWorkflow = this.replaceTemplatePlaceholder(structuredClone(workflowJson), "{{PROMPT_POS_TEXT}}", userInput.prompt.trim());
-    preparedWorkflow = this.replaceTemplatePlaceholder(preparedWorkflow, "{{PROMPT_NEG_TEXT}}", userInput.negative_prompt.trim());
-    preparedWorkflow = this.replaceTemplatePlaceholder(preparedWorkflow, "{{CHECKPOINT_BASE_NAME}}", userInput.checkpoint);
-    // Gotta escape the double quotes as well so it replaces string with an int
-    preparedWorkflow = this.replaceTemplatePlaceholder(preparedWorkflow, "{{SEED}}", Number(userInput.seed));
+    const mappedUserInput = mapUserInputToTemplateToken(userInput);
+
+    // This is not the most efficient traversal/replace...
+    Object.keys(mappedUserInput)
+      .forEach(target => { 
+        this.replaceTemplatePlaceholder(preparedWorkflow, target, mappedUserInput[target]);
+    });
+      
     return preparedWorkflow;
   }
 
