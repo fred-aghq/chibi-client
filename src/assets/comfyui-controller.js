@@ -128,55 +128,9 @@ export default class ComfyUIController extends AController {
     return [this.imageFormat, this.imageQuality];
   }
 
-  // makeTxt2ImgObject() {
-  //   this.comfyObjects = {
-  //     model: new this.node.CheckpointLoaderSimple(),
-  //     prompt: new this.node.CLIPTextEncode(),
-  //     negative: new this.node.CLIPTextEncode(),
-  //     emptyLatent: new this.node.EmptyLatentImage("", "", 1),
-  //     sampler: new this.node.KSampler(),
-  //     vae: new this.node.VAELoader(),
-  //     vaeDecoder: new this.node.VAEDecode(),
-  //     saveImage: new this.node.SaveImage(),
-  //     saveImageWebp: new this.node.SaveAnimatedWEBP(null, "CHIBI", 0.01, false, this.imageQuality, "default"),
-  //   };
-  //   this.comfyObjects.prompt.set("clip", this.comfyObjects.model);
-  //   this.comfyObjects.negative.set("clip", this.comfyObjects.model.CLIP);
-  //   this.comfyObjects.sampler.set("model", this.comfyObjects.model.MODEL);
-  //   this.comfyObjects.sampler.set("positive", this.comfyObjects.prompt);
-  //   this.comfyObjects.sampler.set("negative", this.comfyObjects.negative);
-  //   this.comfyObjects.sampler.set("latent_image", this.comfyObjects.emptyLatent);
-  //   this.comfyObjects.sampler.set("denoise", 1.0);
-  //   this.comfyObjects.vaeDecoder.set("samples", this.comfyObjects.sampler);
-
-  //   this.comfyObjects.saveImage.set("filename_prefix", "CHIBI");
-  //   this.comfyObjects.saveImage.set("images", this.comfyObjects.vaeDecoder);
-  //   this.comfyObjects.saveImageWebp.set("images", this.comfyObjects.vaeDecoder);
-  // }
 
   async generate(info) {
-    // @TODO: should remove commented code but I am actively referring to it while building feature parity 
-
-    // if (!this.comfyObjects) {
-    //   this.makeTxt2ImgObject();
-    // }
-    // this.comfyObjects.sampler.set("steps", info.steps);
-    // this.comfyObjects.sampler.set("cfg", info.cfg_scale);
-    // this.comfyObjects.sampler.set("sampler_name", info.sampler_name);
-    // this.comfyObjects.sampler.set("scheduler", info.scheduler);
-    // this.comfyObjects.sampler.set("seed", info.seed);
-    // if (vae.info) {
-    //   this.comfyObjects.vae.set("vae_name", vae.info);
-    //   this.comfyObjects.vaeDecoder.set("vae", this.comfyObjects.vae);
-    // } else {
-    //   this.comfyObjects.vaeDecoder.set("vae", this.comfyObjects.model.VAE);
-    // }
-
-    // this.comfyObjects.saveImageWebp.set("quality", this.imageQuality);
-    console.debug(info.seed);
     try {
-      // const target = (this.imageFormat == 'webp') ? this.comfyObjects.saveImageWebp : this.comfyObjects.saveImage;
-
       let preparedWorkflow = this.prepareWorkflow(workflowJson, info);
       console.debug(preparedWorkflow);
 
@@ -198,10 +152,10 @@ export default class ComfyUIController extends AController {
 
     // This is not the most efficient traversal/replace...
     Object.keys(mappedUserInput)
-      .forEach(target => { 
+      .forEach(target => {
         this.replaceTemplatePlaceholder(preparedWorkflow, target, mappedUserInput[target]);
-    });
-      
+      });
+
     return preparedWorkflow;
   }
 
