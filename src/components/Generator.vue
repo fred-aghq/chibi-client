@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import TagAutocomplete from './TagAutocomplete.vue';
 import Dropdown from './Dropdown.vue';
 import DataManager from '@/assets/data-manager';
+import WorkflowSelector from './WorkflowSelector.vue';
 
 const controller = DataManager.getInstance().controller;
 const isGenerating = DataManager.getInstance().isGenerating;
@@ -173,6 +174,12 @@ async function generate() {
       <label for="negative-prompt">Negative prompt</label>
       <TagAutocomplete id="negative-prompt" v-model="negative_prompt"></TagAutocomplete>
       <!-- <textarea id="negative-prompt" rows="3" v-model="negative_prompt"></textarea> -->
+
+      <div class="row">
+        <WorkflowSelector>
+
+        </WorkflowSelector>
+      </div>
       <label for="image-size">Image size</label>
       <div class="row">
         <Dropdown style="max-width: 45%;" v-model="sizePreset" v-model:datalist="sizePresetList"></Dropdown>
