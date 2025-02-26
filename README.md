@@ -18,6 +18,9 @@ Chibi, also known as super deformation, or S.D. is a style of caricature origina
 ### Using as standalone
 - cloning this repo, then run `npm run dev` or serve with any web server.
 
+### Using as Docker container
+This app ships docker-ready. If you have docker installed, simply run `docker compose up -d` and the app will start standalone.
+
 ## Custom Workflows (WIP)
 ### Placeholders
 This list may not be 100% up-to-date. see `src/workflow/functions/mapUserInputToTemplateToken.js`
